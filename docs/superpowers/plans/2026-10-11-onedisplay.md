@@ -43,7 +43,7 @@
   - `DisplayItem(id: DisplayID, name: String, isBuiltIn: Bool, isVirtual: Bool, brightness: Double, contrast: Double, volume: Double)`
   - `DisplayMode(width: Int, height: Int, scale: Double, refreshRate: Double, isHiDPI: Bool)`
 
-- [ ] **Step 1: Write failing tests for models in `Tests/OneDisplayCoreTests/ModelTests.swift`**
+- [x] **Step 1: Write failing tests for models in `Tests/OneDisplayCoreTests/ModelTests.swift`**
 ```swift
 import XCTest
 @testable import OneDisplayCore
@@ -65,18 +65,18 @@ final class ModelTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `swift test --filter ModelTests`
 Expected: FAIL (types not defined)
 
-- [ ] **Step 3: Implement `Package.swift` and models in `Sources/OneDisplayCore/Models/`**
+- [x] **Step 3: Implement `Package.swift` and models in `Sources/OneDisplayCore/Models/`**
 Implement `Package.swift` declaring products `OneDisplayCore`, `OneDisplayApp`, `OneDisplayCLI`, and target dependencies. Implement `DisplayID.swift`, `DisplayItem.swift`, and `DisplayMode.swift`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `swift test --filter ModelTests`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add Package.swift Sources/OneDisplayCore/Models/ Tests/OneDisplayCoreTests/
 git commit -m "feat(core): setup package structure and core display models"
@@ -98,7 +98,7 @@ git commit -m "feat(core): setup package structure and core display models"
   - `struct DDCFrame`: `makeWriteFrame(opcode: MCCSOpcode, value: UInt16) -> [UInt8]`, `makeReadFrame(opcode: MCCSOpcode) -> [UInt8]`
   - `class DDCController`: `write(displayID: DisplayID, opcode: MCCSOpcode, value: UInt16) -> Bool`, `read(displayID: DisplayID, opcode: MCCSOpcode) -> UInt16?`
 
-- [ ] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/DDCTests.swift`**
+- [x] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/DDCTests.swift`**
 ```swift
 import XCTest
 @testable import OneDisplayCore
@@ -130,18 +130,18 @@ final class DDCTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `swift test --filter DDCTests`
 Expected: FAIL (DDCFrame not defined)
 
-- [ ] **Step 3: Implement `MCCSCommand.swift` and `DDCController.swift`**
+- [x] **Step 3: Implement `MCCSCommand.swift` and `DDCController.swift`**
 Implement MCCS opcode enum, frame builder with XOR checksum, and `DDCController` using `IOI2CInterface` with mockable dispatch for headless testing.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `swift test --filter DDCTests`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add Sources/OneDisplayCore/DDC/ Tests/OneDisplayCoreTests/DDCTests.swift
 git commit -m "feat(core): implement DDC/CI MCCS frame builder and controller"
@@ -163,7 +163,7 @@ git commit -m "feat(core): implement DDC/CI MCCS frame builder and controller"
   - `enum CECOpcode: UInt8`: `imageViewOn = 0x04`, `standby = 0x36`, `userControlPressed = 0x44`, `userControlReleased = 0x45`, `activeSource = 0x82`
   - `class CECController`: `sendPower(displayID: DisplayID, on: Bool)`, `sendVolumeStep(displayID: DisplayID, up: Bool)`, `switchInput(displayID: DisplayID, physicalAddress: [UInt8])`
 
-- [ ] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/CECTests.swift`**
+- [x] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/CECTests.swift`**
 ```swift
 import XCTest
 @testable import OneDisplayCore
@@ -184,18 +184,18 @@ final class CECTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `swift test --filter CECTests`
 Expected: FAIL (CECFrame not defined)
 
-- [ ] **Step 3: Implement `CECFrame.swift` and `CECController.swift`**
+- [x] **Step 3: Implement `CECFrame.swift` and `CECController.swift`**
 Implement frame structure and DPCD AUX packet builders.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `swift test --filter CECTests`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add Sources/OneDisplayCore/CEC/ Tests/OneDisplayCoreTests/CECTests.swift
 git commit -m "feat(core): implement DPCD AUX HDMI-CEC frame builder and controller"
@@ -218,7 +218,7 @@ git commit -m "feat(core): implement DPCD AUX HDMI-CEC frame builder and control
   - `class BrightnessManager`: `calculateLevels(sliderValue: Double, hardwareMin: Double) -> BrightnessLevel`, `applyBrightness(displayID: DisplayID, sliderValue: Double)`
   - `class XDRManager`: `setEDRHeadroom(displayID: DisplayID, multiplier: Double)`
 
-- [ ] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/BrightnessTests.swift`**
+- [x] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/BrightnessTests.swift`**
 ```swift
 import XCTest
 @testable import OneDisplayCore
@@ -242,18 +242,18 @@ final class BrightnessTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `swift test --filter BrightnessTests`
 Expected: FAIL (BrightnessManager not defined)
 
-- [ ] **Step 3: Implement `BrightnessManager.swift`, `XDRManager.swift`, `AmbientLightSensor.swift`**
+- [x] **Step 3: Implement `BrightnessManager.swift`, `XDRManager.swift`, `AmbientLightSensor.swift`**
 Implement the combined curve calculation, `CGSetDisplayTransferByTable` gamma curve calculation, and XDR EDR headroom adjustment.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `swift test --filter BrightnessTests`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add Sources/OneDisplayCore/Brightness/ Tests/OneDisplayCoreTests/BrightnessTests.swift
 git commit -m "feat(core): implement combined brightness, sub-zero dimming, and XDR manager"
@@ -274,7 +274,7 @@ git commit -m "feat(core): implement combined brightness, sub-zero dimming, and 
   - `class DisplayModeManager`: `getModes(for: DisplayID) -> [DisplayMode]`, `setMode(for: DisplayID, mode: DisplayMode) -> Bool`
   - `class VirtualDisplayManager`: `createVirtualDisplay(name: String, width: Int, height: Int, hiDPI: Bool) -> DisplayID?`, `destroy(id: DisplayID)`
 
-- [ ] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/ResolutionAndVirtualDisplayTests.swift`**
+- [x] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/ResolutionAndVirtualDisplayTests.swift`**
 ```swift
 import XCTest
 @testable import OneDisplayCore
@@ -289,18 +289,18 @@ final class ResolutionAndVirtualDisplayTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `swift test --filter ResolutionAndVirtualDisplayTests`
 Expected: FAIL (VirtualDisplayManager not defined)
 
-- [ ] **Step 3: Implement `DisplayModeManager.swift` and `VirtualDisplayManager.swift`**
+- [x] **Step 3: Implement `DisplayModeManager.swift` and `VirtualDisplayManager.swift`**
 Implement resolution mode enumeration and `CGVirtualDisplay` allocation with mock fallback for CI environments.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `swift test --filter ResolutionAndVirtualDisplayTests`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add Sources/OneDisplayCore/Resolution/ Sources/OneDisplayCore/VirtualDisplay/ Tests/OneDisplayCoreTests/
 git commit -m "feat(core): implement display mode manager and virtual display dummy creation"
@@ -321,7 +321,7 @@ git commit -m "feat(core): implement display mode manager and virtual display du
   - `struct StreamConfig`: `cropRect: CGRect?`, `rotation: Int`, `isFlippedHorizontal: Bool`, `isFlippedVertical: Bool`
   - `class StreamPipeline`: `startStream(sourceDisplayID: DisplayID, config: StreamConfig, frameHandler: @escaping (CVPixelBuffer) -> Void)`, `stopStream()`
 
-- [ ] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/StreamingTests.swift`**
+- [x] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/StreamingTests.swift`**
 ```swift
 import XCTest
 @testable import OneDisplayCore
@@ -335,18 +335,18 @@ final class StreamingTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `swift test --filter StreamingTests`
 Expected: FAIL
 
-- [ ] **Step 3: Implement `VideoFilter.swift` and `StreamPipeline.swift`**
+- [x] **Step 3: Implement `VideoFilter.swift` and `StreamPipeline.swift`**
 Implement `ScreenCaptureKit` stream wrapper and frame transform configuration.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `swift test --filter StreamingTests`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add Sources/OneDisplayCore/Streaming/ Tests/OneDisplayCoreTests/StreamingTests.swift
 git commit -m "feat(core): implement ScreenCaptureKit stream pipeline and filter configuration"
@@ -369,7 +369,7 @@ git commit -m "feat(core): implement ScreenCaptureKit stream pipeline and filter
   - `class HTTPServer`: `start(port: UInt16, token: String?)`, `stop()`
   - CLI binary `onedisplay` with verbs `get`, `set`, `list`, `virtual-display`, `pip`
 
-- [ ] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/ServerTests.swift`**
+- [x] **Step 1: Write failing tests in `Tests/OneDisplayCoreTests/ServerTests.swift`**
 ```swift
 import XCTest
 @testable import OneDisplayCore
@@ -393,18 +393,18 @@ final class ServerTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `swift test --filter ServerTests`
 Expected: FAIL
 
-- [ ] **Step 3: Implement `HTTPRequest.swift`, `HTTPResponse.swift`, `HTTPServer.swift`, and `OneDisplayCLI/main.swift`**
+- [x] **Step 3: Implement `HTTPRequest.swift`, `HTTPResponse.swift`, `HTTPServer.swift`, and `OneDisplayCLI/main.swift`**
 Implement the socket listener on `127.0.0.1:8969`, `/command` dispatch, SSE `/stream`, and CLI argument handler.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `swift test --filter ServerTests`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add Sources/OneDisplayCore/Server/ Sources/OneDisplayCLI/ Tests/OneDisplayCoreTests/ServerTests.swift
 git commit -m "feat(server,cli): implement embedded HTTP REST server and onedisplay CLI utility"
@@ -425,23 +425,23 @@ git commit -m "feat(server,cli): implement embedded HTTP REST server and onedisp
 - Consumes: All `OneDisplayCore` controllers and models
 - Produces: Executable app `OneDisplayApp` rendering MenuBarExtra status item, popover, and settings sheet.
 
-- [ ] **Step 1: Implement `AppSliderView.swift`**
+- [x] **Step 1: Implement `AppSliderView.swift`**
 Custom smooth macOS slider with tick marks, icon prefix, percentage label, and sub-zero indicator.
 
-- [ ] **Step 2: Implement `DisplayCardView.swift`**
+- [x] **Step 2: Implement `DisplayCardView.swift`**
 Card view rendering display title, connection type, combined brightness slider, contrast/volume sliders, resolution mode picker, and quick rotation/mirror buttons.
 
-- [ ] **Step 3: Implement `AppMenuView.swift` & `SettingsView.swift`**
+- [x] **Step 3: Implement `AppMenuView.swift` & `SettingsView.swift`**
 Popover container listing connected displays, virtual dummy creation button, PiP launcher, sleep inhibitor toggle, and Settings window with Hardware, Virtual Displays, and API tabs.
 
-- [ ] **Step 4: Implement `OneDisplayApp.swift`**
+- [x] **Step 4: Implement `OneDisplayApp.swift`**
 `@main` struct with `NSApplicationDelegateAdaptor` and `MenuBarExtra`.
 
-- [ ] **Step 5: Verify building application target**
+- [x] **Step 5: Verify building application target**
 Run: `swift build --target OneDisplayApp`
 Expected: Build succeeds with 0 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 ```bash
 git add Sources/OneDisplayApp/
 git commit -m "feat(app): implement streamlined SwiftUI menu bar app and settings views"
@@ -454,19 +454,19 @@ git commit -m "feat(app): implement streamlined SwiftUI menu bar app and setting
 **Files:**
 - Modify: `README.md` (installation & CLI usage guide)
 
-- [ ] **Step 1: Run complete package build**
+- [x] **Step 1: Run complete package build**
 Run: `swift build -c release`
 Expected: Success, produces `.build/release/OneDisplayApp` and `.build/release/onedisplay`
 
-- [ ] **Step 2: Run all unit tests**
+- [x] **Step 2: Run all unit tests**
 Run: `swift test`
 Expected: All tests PASS
 
-- [ ] **Step 3: Smoke test CLI utility**
+- [x] **Step 3: Smoke test CLI utility**
 Run: `.build/release/onedisplay --help`
 Expected: Prints CLI options (`get`, `set`, `list`, `virtual-display`, `pip`) with exit code 0.
 
-- [ ] **Step 4: Create README and commit**
+- [x] **Step 4: Create README and commit**
 ```bash
 git add README.md
 git commit -m "docs: add OneDisplay architecture, CLI usage, and API guide"
