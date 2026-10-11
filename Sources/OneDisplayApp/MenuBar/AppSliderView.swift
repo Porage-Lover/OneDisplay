@@ -5,20 +5,20 @@ public struct AppSliderView: View {
     let icon: String
     @Binding var value: Double
     var isSubZeroSupported: Bool = false
-    let onEditingChanged: (Bool) -> Void
+    let onValueChange: (Double) -> Void
 
     public init(
         title: String,
         icon: String,
         value: Binding<Double>,
         isSubZeroSupported: Bool = false,
-        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+        onValueChange: @escaping (Double) -> Void = { _ in }
     ) {
         self.title = title
         self.icon = icon
         self._value = value
         self.isSubZeroSupported = isSubZeroSupported
-        self.onEditingChanged = onEditingChanged
+        self.onValueChange = onValueChange
     }
 
     public var body: some View {
@@ -45,8 +45,11 @@ public struct AppSliderView: View {
                     .monospacedDigit()
                     .foregroundColor(.secondary)
             }
-            Slider(value: $value, in: 0.0...1.0, onEditingChanged: onEditingChanged)
+            Slider(value: $value, in: 0.0...1.0)
                 .controlSize(.small)
+                .onChange(of: value) { _, newValue in
+                    onValueChange(newValue)
+                }
         }
         .padding(.vertical, 2)
     }

@@ -7,7 +7,6 @@ public struct AppMenuView: View {
     @State private var isSleepInhibited: Bool = SleepInhibitor.shared.isSleepPrevented
 
     private let brightnessManager = BrightnessManager()
-    private let ddcController = DDCController()
     private let virtualManager = VirtualDisplayManager()
 
     public init() {}
@@ -15,10 +14,19 @@ public struct AppMenuView: View {
     public var body: some View {
         VStack(spacing: 12) {
             // Header bar
-            HStack {
+            HStack(spacing: 8) {
                 Text("OneDisplay")
                     .font(.headline)
                     .fontWeight(.bold)
+
+                Button(action: refreshDisplays) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Refresh Connected Displays")
+
                 Spacer()
 
                 // Coffee / Sleep inhibitor button
@@ -47,23 +55,35 @@ public struct AppMenuView: View {
                             display: $disp,
                             onBrightnessChange: { newBrightness in
                                 brightnessManager.applyBrightness(displayID: disp.id, sliderValue: newBrightness)
-                            },
-                            onVolumeChange: { newVolume in
-                                let intVal = UInt16(round(newVolume * 100))
-                                ddcController.write(displayID: disp.id, opcode: .audioVolume, value: intVal)
                             }
                         )
                     }
                 }
                 .padding(.vertical, 2)
             }
-            .frame(height: max(150, min(CGFloat(displays.count) * 155.0, 360)))
+            .frame(height: max(165, min(CGFloat(displays.count) * 170.0, 420)))
 
             Divider()
 
             // Footer bar
             HStack {
-                Button(action: addVirtualDisplay) {
+                Menu {
+                    Button("1080p (1920 × 1080, 16:9)") {
+                        createDummy(width: 1920, height: 1080)
+                    }
+                    Button("4K UHD (3840 × 2160, 16:9)") {
+                        createDummy(width: 3840, height: 2160)
+                    }
+                    Button("1440p (2560 × 1440, 16:9)") {
+                        createDummy(width: 2560, height: 1440)
+                    }
+                    Button("1600p (2560 × 1600, 16:10)") {
+                        createDummy(width: 2560, height: 1600)
+                    }
+                    Button("Ultrawide (3440 × 1440, 21:9)") {
+                        createDummy(width: 3440, height: 1440)
+                    }
+                } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.rectangle.on.rectangle")
                             .font(.system(size: 13))
@@ -72,7 +92,8 @@ public struct AppMenuView: View {
                     }
                     .foregroundColor(.primary)
                 }
-                .buttonStyle(.plain)
+                .menuStyle(.borderlessButton)
+                .fixedSize()
 
                 Spacer()
 
@@ -97,7 +118,7 @@ public struct AppMenuView: View {
             .padding(.horizontal, 4)
         }
         .padding(12)
-        .frame(width: 340)
+        .frame(width: 360)
         .onAppear {
             refreshDisplays()
         }
@@ -115,17 +136,19 @@ public struct AppMenuView: View {
         isSleepInhibited = SleepInhibitor.shared.toggle()
     }
 
-    private func addVirtualDisplay() {
+    private func createDummy(width: Int, height: Int) {
         let count = displays.filter { $0.isVirtual }.count + 1
-        let id = virtualManager.createVirtualDisplay(name: "Virtual Dummy \(count)", width: 1920, height: 1080)
+        let name = "Virtual Dummy \(count) (\(width)×\(height))"
+        let id = virtualManager.createVirtualDisplay(name: name, width: width, height: height)
         let newItem = DisplayItem(
             id: id,
-            name: "Virtual Dummy \(count)",
+            name: name,
             isBuiltIn: false,
             isVirtual: true,
             brightness: 1.0,
             contrast: 0.5,
-            volume: 0.5
+            volume: 0.5,
+            currentModeString: "\(width) × \(height) @ 60Hz"
         )
         displays.append(newItem)
     }

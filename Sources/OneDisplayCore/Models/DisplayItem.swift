@@ -8,6 +8,9 @@ public struct DisplayItem: Identifiable, Hashable, Codable, Sendable {
     public var brightness: Double
     public var contrast: Double
     public var volume: Double
+    public var currentModeString: String
+    public var availableModes: [DisplayMode]
+    public var isXDRHeadroomBoosted: Bool
 
     public init(
         id: DisplayID,
@@ -16,7 +19,10 @@ public struct DisplayItem: Identifiable, Hashable, Codable, Sendable {
         isVirtual: Bool = false,
         brightness: Double = 0.5,
         contrast: Double = 0.5,
-        volume: Double = 0.5
+        volume: Double = 0.5,
+        currentModeString: String = "",
+        availableModes: [DisplayMode] = [],
+        isXDRHeadroomBoosted: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -25,5 +31,8 @@ public struct DisplayItem: Identifiable, Hashable, Codable, Sendable {
         self.brightness = brightness
         self.contrast = contrast
         self.volume = volume
+        self.currentModeString = currentModeString
+        self.availableModes = availableModes
+        self.isXDRHeadroomBoosted = isXDRHeadroomBoosted
     }
 }

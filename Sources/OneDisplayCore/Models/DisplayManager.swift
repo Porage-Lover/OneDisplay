@@ -4,6 +4,7 @@ import AppKit
 
 public final class DisplayManager: @unchecked Sendable {
     public static let shared = DisplayManager()
+    private let modeManager = DisplayModeManager()
 
     public init() {}
 
@@ -26,14 +27,43 @@ public final class DisplayManager: @unchecked Sendable {
                 }
             }
 
+            // Read actual hardware backlight brightness
+            let hwBrightness = DisplayHardwareController.shared.getBrightness(for: id) ?? 0.75
+
+            // Read active mode resolution
+            var currentModeStr = ""
+            if let curMode = CGDisplayCopyDisplayMode(id) {
+                let w = curMode.width
+                let h = curMode.height
+                let hz = Int(round(curMode.refreshRate))
+                currentModeStr = "\(w) × \(h)\(hz > 0 ? " @ \(hz)Hz" : "")"
+            }
+
+            // Distinct resolution list
+            let rawModes = modeManager.getModes(for: DisplayID(id))
+            var seen = Set<String>()
+            var distinctModes: [DisplayMode] = []
+            for m in rawModes {
+                let key = "\(m.width)x\(m.height)"
+                if !seen.contains(key) {
+                    seen.insert(key)
+                    distinctModes.append(m)
+                }
+            }
+            // Sort by width descending
+            distinctModes.sort { $0.width > $1.width }
+
             items.append(DisplayItem(
                 id: DisplayID(id),
                 name: name,
                 isBuiltIn: isBuiltIn,
                 isVirtual: false,
-                brightness: 0.75,
+                brightness: hwBrightness,
                 contrast: 0.5,
-                volume: 0.5
+                volume: 0.5,
+                currentModeString: currentModeStr,
+                availableModes: Array(distinctModes.prefix(8)),
+                isXDRHeadroomBoosted: false
             ))
         }
 
@@ -45,7 +75,8 @@ public final class DisplayManager: @unchecked Sendable {
                 isVirtual: false,
                 brightness: 0.75,
                 contrast: 0.5,
-                volume: 0.5
+                volume: 0.5,
+                currentModeString: "1920 × 1080 @ 60Hz"
             ))
         }
 

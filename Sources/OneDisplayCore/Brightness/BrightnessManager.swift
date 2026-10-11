@@ -92,7 +92,21 @@ public final class BrightnessManager: @unchecked Sendable {
 
         let levels = calculateLevels(sliderValue: sliderValue, hardwareMin: hardwareMin)
         let hwInt = UInt16(round(levels.hardwareLevel * 100.0))
+        
+        // Native Apple Silicon / macOS DisplayServices backlight control
+        _ = DisplayHardwareController.shared.setBrightness(for: displayID.rawValue, value: levels.hardwareLevel)
+        
+        // DDC/CI hardware control for external monitors
         ddcController.write(displayID: displayID, opcode: .luminance, value: hwInt)
+        
+        // Software sub-zero dimming via compositor overlay
+        if sliderValue < hardwareMin && hardwareMin > 0 {
+            let dimAlpha = CGFloat((hardwareMin - sliderValue) / hardwareMin * 0.85)
+            OverlayDimmer.shared.setDimming(displayID: displayID.rawValue, alpha: dimAlpha)
+        } else {
+            OverlayDimmer.shared.setDimming(displayID: displayID.rawValue, alpha: 0.0)
+        }
+        
         _ = gammaApplier.setDisplayGamma(displayID: displayID, factor: levels.softwareDimmingFactor)
         return levels
     }
