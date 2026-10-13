@@ -11,6 +11,8 @@ public struct DisplayItem: Identifiable, Hashable, Codable, Sendable {
     public var currentModeString: String
     public var availableModes: [DisplayMode]
     public var isXDRHeadroomBoosted: Bool
+    public var rotation: Int
+    public var isMirrored: Bool
 
     public init(
         id: DisplayID,
@@ -22,7 +24,9 @@ public struct DisplayItem: Identifiable, Hashable, Codable, Sendable {
         volume: Double = 0.5,
         currentModeString: String = "",
         availableModes: [DisplayMode] = [],
-        isXDRHeadroomBoosted: Bool = false
+        isXDRHeadroomBoosted: Bool = false,
+        rotation: Int = 0,
+        isMirrored: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -34,5 +38,7 @@ public struct DisplayItem: Identifiable, Hashable, Codable, Sendable {
         self.currentModeString = currentModeString
         self.availableModes = availableModes
         self.isXDRHeadroomBoosted = isXDRHeadroomBoosted
+        self.rotation = rotation
+        self.isMirrored = isMirrored
     }
 }

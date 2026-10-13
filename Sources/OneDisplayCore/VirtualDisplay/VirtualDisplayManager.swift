@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import AppKit
 
 public struct VirtualDisplayConfig: Sendable {
     public let name: String
@@ -16,8 +17,11 @@ public struct VirtualDisplayConfig: Sendable {
 }
 
 public final class VirtualDisplayManager: @unchecked Sendable {
+    public static let shared = VirtualDisplayManager()
+
     private let lock = NSLock()
-    private var activeVirtualDisplays: [DisplayID: VirtualDisplayConfig] = [:]
+    private var activeVirtualConfigs: [DisplayID: VirtualDisplayConfig] = [:]
+    private var activeVirtualObjects: [DisplayID: AnyObject] = [:]
     private var simulatedIDCounter: UInt32 = 9000
 
     public init() {}
@@ -40,24 +44,49 @@ public final class VirtualDisplayManager: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
+        // Attempt creation via native CGVirtualDisplay private framework
+        if let descClass = NSClassFromString("CGVirtualDisplayDescriptor") as? NSObject.Type,
+           let dispClass = NSClassFromString("CGVirtualDisplay") as? NSObject.Type {
+            let desc = descClass.init()
+            desc.setValue(name, forKey: "name")
+            desc.setValue(UInt32(width), forKey: "maxPixelsWide")
+            desc.setValue(UInt32(height), forKey: "maxPixelsHigh")
+            desc.setValue(CGSize(width: width, height: height), forKey: "sizeInMillimeters")
+            desc.setValue(UInt32(0x1234), forKey: "productID")
+            desc.setValue(UInt32(0x5678), forKey: "vendorID")
+            desc.setValue(UInt32(simulatedIDCounter), forKey: "serialNum")
+
+            let alloced = dispClass.perform(NSSelectorFromString("alloc")).takeUnretainedValue()
+            let disp = alloced.perform(NSSelectorFromString("initWithDescriptor:"), with: desc).takeUnretainedValue()
+
+            if let displayIDVal = disp.value(forKey: "displayID") as? CGDirectDisplayID, displayIDVal != 0 {
+                let id = DisplayID(displayIDVal)
+                activeVirtualObjects[id] = disp
+                activeVirtualConfigs[id] = VirtualDisplayConfig(name: name, width: width, height: height, hiDPI: hiDPI)
+                return id
+            }
+        }
+
+        // Fallback simulated virtual ID
         simulatedIDCounter += 1
-        let id = DisplayID(simulatedIDCounter)
+        let fallbackID = DisplayID(simulatedIDCounter)
         let config = VirtualDisplayConfig(name: name, width: width, height: height, hiDPI: hiDPI)
-        activeVirtualDisplays[id] = config
-        return id
+        activeVirtualConfigs[fallbackID] = config
+        return fallbackID
     }
 
     @discardableResult
     public func destroy(id: DisplayID) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        return activeVirtualDisplays.removeValue(forKey: id) != nil
+        activeVirtualObjects.removeValue(forKey: id)
+        return activeVirtualConfigs.removeValue(forKey: id) != nil
     }
 
     public func activeDisplays() -> [DisplayItem] {
         lock.lock()
         defer { lock.unlock() }
-        return activeVirtualDisplays.map { id, config in
+        return activeVirtualConfigs.map { id, config in
             DisplayItem(
                 id: id,
                 name: config.name,

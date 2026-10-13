@@ -4,3 +4,4 @@ dist/
 scripts/*.iconset
 *.dmg
 .DS_Store
+.vscode/

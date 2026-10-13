@@ -4,6 +4,7 @@ public struct AppSliderView: View {
     let title: String
     let icon: String
     @Binding var value: Double
+    var maxValue: Double = 1.0
     var isSubZeroSupported: Bool = false
     let onValueChange: (Double) -> Void
 
@@ -11,12 +12,14 @@ public struct AppSliderView: View {
         title: String,
         icon: String,
         value: Binding<Double>,
+        maxValue: Double = 1.0,
         isSubZeroSupported: Bool = false,
         onValueChange: @escaping (Double) -> Void = { _ in }
     ) {
         self.title = title
         self.icon = icon
         self._value = value
+        self.maxValue = max(1.0, maxValue)
         self.isSubZeroSupported = isSubZeroSupported
         self.onValueChange = onValueChange
     }
@@ -25,13 +28,21 @@ public struct AppSliderView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Image(systemName: icon)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(value > 1.0 ? .yellow : .accentColor)
                     .frame(width: 16)
                 Text(title)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                if isSubZeroSupported && value < 0.2 {
+                if value > 1.0 {
+                    Text("XDR Boost")
+                        .font(.caption2)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.yellow.opacity(0.2))
+                        .foregroundColor(.orange)
+                        .cornerRadius(4)
+                } else if isSubZeroSupported && value < 0.05 {
                     Text("Sub-Zero")
                         .font(.caption2)
                         .padding(.horizontal, 4)
@@ -45,7 +56,7 @@ public struct AppSliderView: View {
                     .monospacedDigit()
                     .foregroundColor(.secondary)
             }
-            Slider(value: $value, in: 0.0...1.0)
+            Slider(value: $value, in: 0.0...maxValue)
                 .controlSize(.small)
                 .onChange(of: value) { _, newValue in
                     onValueChange(newValue)

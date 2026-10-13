@@ -30,6 +30,10 @@ public final class DisplayManager: @unchecked Sendable {
             // Read actual hardware backlight brightness
             let hwBrightness = DisplayHardwareController.shared.getBrightness(for: id) ?? 0.75
 
+            // Read rotation & mirroring
+            let rot = Int(round(CGDisplayRotation(id)))
+            let isMirrored = CGDisplayIsInMirrorSet(id) != 0
+
             // Read active mode resolution
             var currentModeStr = ""
             if let curMode = CGDisplayCopyDisplayMode(id) {
@@ -50,21 +54,31 @@ public final class DisplayManager: @unchecked Sendable {
                     distinctModes.append(m)
                 }
             }
-            // Sort by width descending
             distinctModes.sort { $0.width > $1.width }
+
+            let isBoosted = XDRManager.shared.isBoosted(for: DisplayID(id))
 
             items.append(DisplayItem(
                 id: DisplayID(id),
                 name: name,
                 isBuiltIn: isBuiltIn,
                 isVirtual: false,
-                brightness: hwBrightness,
+                brightness: isBoosted ? XDRManager.shared.getHeadroom(for: DisplayID(id)) : hwBrightness,
                 contrast: 0.5,
                 volume: 0.5,
                 currentModeString: currentModeStr,
                 availableModes: Array(distinctModes.prefix(8)),
-                isXDRHeadroomBoosted: false
+                isXDRHeadroomBoosted: isBoosted,
+                rotation: rot,
+                isMirrored: isMirrored
             ))
+        }
+
+        // Include created virtual displays if not returned by CGGetOnlineDisplayList
+        for v in VirtualDisplayManager.shared.activeDisplays() {
+            if !items.contains(where: { $0.id == v.id }) {
+                items.append(v)
+            }
         }
 
         if items.isEmpty {
@@ -76,7 +90,9 @@ public final class DisplayManager: @unchecked Sendable {
                 brightness: 0.75,
                 contrast: 0.5,
                 volume: 0.5,
-                currentModeString: "1920 × 1080 @ 60Hz"
+                currentModeString: "1920 × 1080 @ 60Hz",
+                rotation: 0,
+                isMirrored: false
             ))
         }
 

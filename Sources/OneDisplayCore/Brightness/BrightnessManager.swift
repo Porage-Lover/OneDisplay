@@ -85,20 +85,45 @@ public final class BrightnessManager: @unchecked Sendable {
     public func applyBrightness(
         displayID: DisplayID,
         sliderValue: Double,
-        hardwareMin: Double = 0.2
+        hardwareMin: Double = 0.2,
+        isBuiltIn: Bool = false
     ) -> BrightnessLevel {
         lock.lock()
         defer { lock.unlock() }
 
+        if isBuiltIn {
+            if sliderValue > 1.0 {
+                // Boosted XDR range (1.0 to 1.6)
+                _ = DisplayHardwareController.shared.setBrightness(for: displayID.rawValue, value: 1.0)
+                OverlayDimmer.shared.setDimming(displayID: displayID.rawValue, alpha: 0.0)
+                _ = XDRManager.shared.setEDRHeadroom(displayID: displayID, multiplier: sliderValue)
+                return BrightnessLevel(sliderValue: sliderValue, hardwareLevel: 1.0, softwareDimmingFactor: sliderValue)
+            } else {
+                let clamped = max(0.0, min(1.0, sliderValue))
+                _ = DisplayHardwareController.shared.setBrightness(for: displayID.rawValue, value: clamped)
+
+
+                // Sub-zero dimming for built-in display if slider is below 0.05
+                if clamped < 0.05 {
+                    let dimAlpha = CGFloat((0.05 - clamped) / 0.05 * 0.85)
+                    OverlayDimmer.shared.setDimming(displayID: displayID.rawValue, alpha: dimAlpha)
+                } else {
+                    OverlayDimmer.shared.setDimming(displayID: displayID.rawValue, alpha: 0.0)
+                }
+
+                return BrightnessLevel(sliderValue: clamped, hardwareLevel: clamped, softwareDimmingFactor: 1.0)
+            }
+        }
+
         let levels = calculateLevels(sliderValue: sliderValue, hardwareMin: hardwareMin)
         let hwInt = UInt16(round(levels.hardwareLevel * 100.0))
-        
+
         // Native Apple Silicon / macOS DisplayServices backlight control
         _ = DisplayHardwareController.shared.setBrightness(for: displayID.rawValue, value: levels.hardwareLevel)
-        
+
         // DDC/CI hardware control for external monitors
         ddcController.write(displayID: displayID, opcode: .luminance, value: hwInt)
-        
+
         // Software sub-zero dimming via compositor overlay
         if sliderValue < hardwareMin && hardwareMin > 0 {
             let dimAlpha = CGFloat((hardwareMin - sliderValue) / hardwareMin * 0.85)
@@ -106,8 +131,33 @@ public final class BrightnessManager: @unchecked Sendable {
         } else {
             OverlayDimmer.shared.setDimming(displayID: displayID.rawValue, alpha: 0.0)
         }
-        
+
         _ = gammaApplier.setDisplayGamma(displayID: displayID, factor: levels.softwareDimmingFactor)
         return levels
+    }
+
+    public func applyContrast(displayID: DisplayID, contrastValue: Double, isBuiltIn: Bool = false) {
+        let clamped = max(0.0, min(1.0, contrastValue))
+        if isBuiltIn {
+            let factor = Float(clamped * 2.0)
+            var red = [Float](repeating: 0, count: 256)
+            var green = [Float](repeating: 0, count: 256)
+            var blue = [Float](repeating: 0, count: 256)
+            for i in 0..<256 {
+                let x = Float(i) / 255.0
+                let y = max(0.0, min(1.0, 0.5 + (x - 0.5) * factor))
+                red[i] = y
+                green[i] = y
+                blue[i] = y
+            }
+            _ = CGSetDisplayTransferByTable(displayID.rawValue, 256, &red, &green, &blue)
+        } else {
+            let val16 = UInt16(round(clamped * 100.0))
+            ddcController.write(displayID: displayID, opcode: .contrast, value: val16)
+        }
+    }
+
+    public func switchInputSource(displayID: DisplayID, source: UInt16) {
+        ddcController.write(displayID: displayID, opcode: .inputSource, value: source)
     }
 }
