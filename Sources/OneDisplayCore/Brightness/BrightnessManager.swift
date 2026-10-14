@@ -99,6 +99,9 @@ public final class BrightnessManager: @unchecked Sendable {
                 _ = XDRManager.shared.setEDRHeadroom(displayID: displayID, multiplier: sliderValue)
                 return BrightnessLevel(sliderValue: sliderValue, hardwareLevel: 1.0, softwareDimmingFactor: sliderValue)
             } else {
+                if XDRManager.shared.isBoosted(for: displayID) {
+                    _ = XDRManager.shared.setEDRHeadroom(displayID: displayID, multiplier: 1.0)
+                }
                 let clamped = max(0.0, min(1.0, sliderValue))
                 _ = DisplayHardwareController.shared.setBrightness(for: displayID.rawValue, value: clamped)
 

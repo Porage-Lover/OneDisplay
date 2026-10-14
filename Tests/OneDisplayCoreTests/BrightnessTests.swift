@@ -40,4 +40,23 @@ final class BrightnessTests: XCTestCase {
         xdr.tearDownAll()
         XCTAssertFalse(xdr.isBoosted(for: testID))
     }
+
+    func testBuiltInBrightnessRoutingBoostAndReset() {
+        let bm = BrightnessManager()
+        let displayID = DisplayID(1)
+
+        // Slider at 1.4: should set hardware to 1.0 and EDR headroom to 1.4
+        let boostedLevel = bm.applyBrightness(displayID: displayID, sliderValue: 1.4, isBuiltIn: true)
+        XCTAssertEqual(boostedLevel.hardwareLevel, 1.0)
+        XCTAssertEqual(boostedLevel.softwareDimmingFactor, 1.4)
+        XCTAssertTrue(XDRManager.shared.isBoosted(for: displayID))
+
+        // Slider reduced to 0.8: should reset EDR headroom to 1.0
+        let normalLevel = bm.applyBrightness(displayID: displayID, sliderValue: 0.8, isBuiltIn: true)
+        XCTAssertEqual(normalLevel.hardwareLevel, 0.8)
+        XCTAssertEqual(normalLevel.softwareDimmingFactor, 1.0)
+        XCTAssertFalse(XDRManager.shared.isBoosted(for: displayID))
+
+        XDRManager.shared.tearDownAll()
+    }
 }
