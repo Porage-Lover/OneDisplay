@@ -43,10 +43,10 @@ public struct DisplayCardView: View {
                         Text("\(Int(round(display.brightness * 100)))%")
                             .font(.system(size: 11, weight: .bold))
                             .monospacedDigit()
-                            .foregroundColor(display.isXDRHeadroomBoosted ? .yellow : .accentColor)
+                            .foregroundColor((display.isXDRHeadroomBoosted && display.brightness > 1.0) ? .yellow : .accentColor)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
-                            .background((display.isXDRHeadroomBoosted ? Color.yellow : Color.accentColor).opacity(0.15))
+                            .background(((display.isXDRHeadroomBoosted && display.brightness > 1.0) ? Color.yellow : Color.accentColor).opacity(0.15))
                             .cornerRadius(4)
                     }
 
@@ -291,19 +291,21 @@ public struct DisplayCardView: View {
     }
 
     private func toggleXDRBoost() {
-        display.isXDRHeadroomBoosted.toggle()
-        let mult = display.isXDRHeadroomBoosted ? 1.6 : 1.0
-        XDRManager.shared.setEDRHeadroom(displayID: display.id, multiplier: mult)
         if display.isXDRHeadroomBoosted {
-            if display.brightness < 1.0 {
-                display.brightness = 1.0
-            }
+            // Turning OFF boost:
+            // 1. Clamp brightness first to avoid slider out-of-range assertion
+            display.brightness = min(1.0, display.brightness)
+            display.isXDRHeadroomBoosted = false
+            XDRManager.shared.setEDRHeadroom(displayID: display.id, multiplier: 1.0)
             onBrightnessChange(display.brightness, display.isBuiltIn)
         } else {
-            if display.brightness > 1.0 {
-                display.brightness = 1.0
-            }
-            onBrightnessChange(display.brightness, display.isBuiltIn)
+            // Turning ON boost:
+            // 1. Set boosted brightness (1.25 for immediate visible confirmation)
+            let targetBrightness = max(1.25, min(1.6, display.brightness))
+            display.brightness = targetBrightness
+            display.isXDRHeadroomBoosted = true
+            XDRManager.shared.setEDRHeadroom(displayID: display.id, multiplier: targetBrightness)
+            onBrightnessChange(targetBrightness, display.isBuiltIn)
         }
     }
 

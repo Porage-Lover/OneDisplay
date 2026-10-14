@@ -24,6 +24,23 @@ public struct AppSliderView: View {
         self.onValueChange = onValueChange
     }
 
+    private var safeMax: Double {
+        max(1.0, maxValue)
+    }
+
+    private var safeSliderBinding: Binding<Double> {
+        Binding(
+            get: {
+                max(0.0, min(safeMax, value))
+            },
+            set: { newValue in
+                let clamped = max(0.0, min(safeMax, newValue))
+                value = clamped
+                onValueChange(clamped)
+            }
+        )
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -54,13 +71,10 @@ public struct AppSliderView: View {
                 Text("\(Int(round(value * 100)))%")
                     .font(.caption)
                     .monospacedDigit()
-                    .foregroundColor(.secondary)
+                    .foregroundColor(value > 1.0 ? .orange : .secondary)
             }
-            Slider(value: $value, in: 0.0...maxValue)
+            Slider(value: safeSliderBinding, in: 0.0...safeMax)
                 .controlSize(.small)
-                .onChange(of: value) { _, newValue in
-                    onValueChange(newValue)
-                }
         }
         .padding(.vertical, 2)
     }
