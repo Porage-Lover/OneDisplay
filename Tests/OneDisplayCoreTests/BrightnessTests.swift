@@ -17,4 +17,27 @@ final class BrightnessTests: XCTestCase {
         XCTAssertEqual(level.hardwareLevel, 0.0, accuracy: 0.001)
         XCTAssertEqual(level.softwareDimmingFactor, 0.5, accuracy: 0.001)
     }
+
+    func testXDRHeadroomCalculationAndClamping() {
+        let xdr = XDRManager.shared
+        let testID = DisplayID(1)
+        
+        // Default headroom when not boosted should be 1.0
+        XCTAssertEqual(xdr.getHeadroom(for: testID), 1.0)
+        XCTAssertFalse(xdr.isBoosted(for: testID))
+        
+        // Setting headroom to 1.4 should reflect as boosted
+        xdr.setEDRHeadroom(displayID: testID, multiplier: 1.4)
+        XCTAssertEqual(xdr.getHeadroom(for: testID), 1.4)
+        XCTAssertTrue(xdr.isBoosted(for: testID))
+        
+        // Setting headroom back to 1.0 should reset boosted state
+        xdr.setEDRHeadroom(displayID: testID, multiplier: 1.0)
+        XCTAssertEqual(xdr.getHeadroom(for: testID), 1.0)
+        XCTAssertFalse(xdr.isBoosted(for: testID))
+        
+        // Teardown should clean up
+        xdr.tearDownAll()
+        XCTAssertFalse(xdr.isBoosted(for: testID))
+    }
 }
