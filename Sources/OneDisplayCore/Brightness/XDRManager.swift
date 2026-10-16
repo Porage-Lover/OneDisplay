@@ -4,24 +4,12 @@ import AppKit
 import Metal
 import QuartzCore
 
-final class EDRMetalView: NSView {
-    private var metalLayer: CAMetalLayer?
-    private var commandQueue: MTLCommandQueue?
-    private var currentMultiplier: Double = 1.0
-
+private final class EDR1x1View: NSView {
     override func makeBackingLayer() -> CALayer {
         let layer = CAMetalLayer()
-        if let dev = MTLCreateSystemDefaultDevice() {
-            layer.device = dev
-            self.commandQueue = dev.makeCommandQueue()
-        }
-        layer.pixelFormat = .rgba16Float
+        layer.device = MTLCreateSystemDefaultDevice()
         layer.wantsExtendedDynamicRangeContent = true
         layer.colorspace = CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)
-        layer.compositingFilter = "multiplyBlendMode"
-        layer.presentsWithTransaction = true
-        layer.displaySyncEnabled = true
-        self.metalLayer = layer
         return layer
     }
 
@@ -34,104 +22,44 @@ final class EDRMetalView: NSView {
         super.init(coder: coder)
         self.wantsLayer = true
     }
-
-    func render(multiplier: Double) {
-        self.currentMultiplier = multiplier
-        guard let layer = self.metalLayer,
-              let queue = self.commandQueue,
-              let drawable = layer.nextDrawable() else {
-            return
-        }
-
-        let passDescriptor = MTLRenderPassDescriptor()
-        passDescriptor.colorAttachments[0].texture = drawable.texture
-        passDescriptor.colorAttachments[0].loadAction = .clear
-        let v = Double(max(1.0, multiplier))
-        passDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: v, green: v, blue: v, alpha: 1.0)
-        passDescriptor.colorAttachments[0].storeAction = .store
-
-        CATransaction.begin()
-        if let commandBuffer = queue.makeCommandBuffer() {
-            if let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: passDescriptor) {
-                encoder.endEncoding()
-            }
-            commandBuffer.present(drawable)
-            commandBuffer.commit()
-        }
-        CATransaction.commit()
-    }
-}
-
-final class EDROverlayWindow: NSWindow {
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
-
-    init(screenFrame: NSRect) {
-        super.init(
-            contentRect: screenFrame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        self.isReleasedWhenClosed = false
-        self.isOpaque = false
-        self.backgroundColor = .clear
-        self.ignoresMouseEvents = true
-        self.level = .screenSaver
-        self.hasShadow = false
-        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle, .stationary]
-
-        let metalView = EDRMetalView(frame: NSRect(origin: .zero, size: screenFrame.size))
-        metalView.autoresizingMask = [.width, .height]
-        self.contentView = metalView
-    }
-
-    func updateMultiplier(_ multiplier: Double) {
-        if let metalView = self.contentView as? EDRMetalView {
-            metalView.render(multiplier: multiplier)
-        }
-    }
 }
 
 public final class XDRManager: @unchecked Sendable {
     public static let shared = XDRManager()
     private let lock = NSLock()
     private var currentHeadroomMultipliers: [DisplayID: Double] = [:]
-    private var enforcerWindows: [DisplayID: EDROverlayWindow] = [:]
+    private var enforcerWindows: [DisplayID: NSWindow] = [:]
+    private var baseGammaTables: [DisplayID: ([Float], [Float], [Float])] = [:]
 
-    public init() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(screenParametersDidChange(_:)),
-            name: NSApplication.didChangeScreenParametersNotification,
-            object: nil
-        )
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
+    public init() {}
 
     public func maxEDRHeadroom(for displayID: DisplayID) -> Double {
         if let sc = screen(for: displayID) {
             let pot = sc.maximumPotentialExtendedDynamicRangeColorComponentValue
-            return pot > 1.0 ? min(2.0, pot) : 1.6
+            return pot > 1.0 ? min(2.0, pot) : 1.0
         }
-        return 1.6
+        return 1.0
     }
 
     @discardableResult
     public func setEDRHeadroom(displayID: DisplayID, multiplier: Double) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
+        let isUnboosting = multiplier <= 1.001
 
-        if multiplier <= 1.001 {
+        if isUnboosting {
+            lock.lock()
             currentHeadroomMultipliers[displayID] = 1.0
             let win = enforcerWindows.removeValue(forKey: displayID)
+            let baseTable = baseGammaTables.removeValue(forKey: displayID)
+            lock.unlock()
+
             let cleanup = {
+                if var (r, g, b) = baseTable {
+                    _ = CGSetDisplayTransferByTable(displayID.rawValue, 256, &r, &g, &b)
+                }
                 win?.orderOut(nil)
                 CGDisplayRestoreColorSyncSettings()
             }
+
             if Thread.isMainThread {
                 cleanup()
             } else {
@@ -140,32 +68,74 @@ public final class XDRManager: @unchecked Sendable {
             return true
         }
 
-        let clamped = max(1.0, min(2.0, multiplier))
+        // Verify hardware capability
+        let maxPot = maxEDRHeadroom(for: displayID)
+        guard maxPot > 1.001 else {
+            return false
+        }
+
+        let clamped = max(1.0, min(maxPot, multiplier))
+
+        lock.lock()
         currentHeadroomMultipliers[displayID] = clamped
 
+        // Capture base hardware gamma table if not already saved
+        if baseGammaTables[displayID] == nil {
+            var sampleCount: UInt32 = 0
+            var r = [Float](repeating: 0, count: 256)
+            var g = [Float](repeating: 0, count: 256)
+            var b = [Float](repeating: 0, count: 256)
+            let err = CGGetDisplayTransferByTable(displayID.rawValue, 256, &r, &g, &b, &sampleCount)
+            if err == .success && sampleCount == 256 {
+                baseGammaTables[displayID] = (r, g, b)
+            } else {
+                let linear = (0..<256).map { Float($0) / 255.0 }
+                baseGammaTables[displayID] = (linear, linear, linear)
+            }
+        }
+
+        guard let (baseR, baseG, baseB) = baseGammaTables[displayID] else {
+            lock.unlock()
+            return false
+        }
+        lock.unlock()
+
         let apply = { [self] in
-            let targetFrame: NSRect
-            if let sc = self.screen(for: displayID) {
-                targetFrame = sc.frame
-            } else {
-                let bounds = CGDisplayBounds(displayID.rawValue)
-                targetFrame = NSRect(x: bounds.origin.x, y: bounds.origin.y, width: bounds.width, height: bounds.height)
+            // Check if still boosted before altering display
+            lock.lock()
+            let currentMult = currentHeadroomMultipliers[displayID] ?? 1.0
+            guard currentMult > 1.001 else {
+                lock.unlock()
+                return
             }
 
-            let window: EDROverlayWindow
-            if let existing = enforcerWindows[displayID] {
-                window = existing
-                if window.frame != targetFrame {
-                    window.setFrame(targetFrame, display: true)
-                }
-            } else {
-                window = EDROverlayWindow(screenFrame: targetFrame)
-                enforcerWindows[displayID] = window
-                window.orderFrontRegardless()
+            if enforcerWindows[displayID] == nil {
+                let win = NSWindow(
+                    contentRect: NSRect(x: 0, y: 0, width: 1, height: 1),
+                    styleMask: [.borderless],
+                    backing: .buffered,
+                    defer: false
+                )
+                win.isReleasedWhenClosed = false
+                win.isOpaque = false
+                win.backgroundColor = .clear
+                win.ignoresMouseEvents = true
+                win.level = .screenSaver
+                win.hasShadow = false
+                win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle, .stationary]
+                win.contentView = EDR1x1View(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+                win.orderFrontRegardless()
+                enforcerWindows[displayID] = win
             }
+            lock.unlock()
 
-            window.updateMultiplier(clamped)
-            CGDisplayRestoreColorSyncSettings()
+            // Scale gamma table into unlocked EDR headroom
+            let mult = Float(clamped)
+            var boostedR = baseR.map { $0 * mult }
+            var boostedG = baseG.map { $0 * mult }
+            var boostedB = baseB.map { $0 * mult }
+
+            _ = CGSetDisplayTransferByTable(displayID.rawValue, 256, &boostedR, &boostedG, &boostedB)
         }
 
         if Thread.isMainThread {
@@ -191,6 +161,8 @@ public final class XDRManager: @unchecked Sendable {
         lock.lock()
         let windows = Array(enforcerWindows.values)
         enforcerWindows.removeAll()
+        let tables = baseGammaTables
+        baseGammaTables.removeAll()
         currentHeadroomMultipliers.removeAll()
         lock.unlock()
 
@@ -198,13 +170,17 @@ public final class XDRManager: @unchecked Sendable {
             for win in windows {
                 win.orderOut(nil)
             }
+            for (dispID, (r, g, b)) in tables {
+                var cr = r, cg = g, cb = b
+                _ = CGSetDisplayTransferByTable(dispID.rawValue, 256, &cr, &cg, &cb)
+            }
             CGDisplayRestoreColorSyncSettings()
         }
 
         if Thread.isMainThread {
             cleanup()
         } else {
-            DispatchQueue.main.sync(execute: cleanup)
+            DispatchQueue.main.async(execute: cleanup)
         }
     }
 
@@ -216,22 +192,5 @@ public final class XDRManager: @unchecked Sendable {
             }
         }
         return nil
-    }
-
-    @objc private func screenParametersDidChange(_ notification: Notification) {
-        lock.lock()
-        let activeWindows = enforcerWindows
-        let multipliers = currentHeadroomMultipliers
-        lock.unlock()
-
-        DispatchQueue.main.async { [self] in
-            for (displayID, window) in activeWindows {
-                if let sc = self.screen(for: displayID) {
-                    window.setFrame(sc.frame, display: true)
-                    let mult = multipliers[displayID] ?? 1.0
-                    window.updateMultiplier(mult)
-                }
-            }
-        }
     }
 }

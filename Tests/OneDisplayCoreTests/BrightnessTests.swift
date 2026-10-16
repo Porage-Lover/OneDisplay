@@ -59,4 +59,11 @@ final class BrightnessTests: XCTestCase {
 
         XDRManager.shared.tearDownAll()
     }
+
+    func testNonXDRHeadroomDisallowed() {
+        let xdr = XDRManager.shared
+        // DisplayID(99999) does not exist / has no XDR headroom
+        let invalidID = DisplayID(99999)
+        XCTAssertEqual(xdr.maxEDRHeadroom(for: invalidID), 1.0)
+    }
 }

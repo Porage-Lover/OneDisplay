@@ -98,6 +98,9 @@ public struct DisplayCardView: View {
                 maxValue: display.isXDRHeadroomBoosted ? 1.6 : 1.0,
                 isSubZeroSupported: true,
                 onValueChange: { newBrightness in
+                    if newBrightness <= 1.0 && display.isXDRHeadroomBoosted {
+                        display.isXDRHeadroomBoosted = false
+                    }
                     onBrightnessChange(newBrightness, display.isBuiltIn)
                 }
             )
@@ -293,18 +296,14 @@ public struct DisplayCardView: View {
     private func toggleXDRBoost() {
         if display.isXDRHeadroomBoosted {
             // Turning OFF boost:
-            // 1. Clamp brightness first to avoid slider out-of-range assertion
             display.brightness = min(1.0, display.brightness)
             display.isXDRHeadroomBoosted = false
-            XDRManager.shared.setEDRHeadroom(displayID: display.id, multiplier: 1.0)
             onBrightnessChange(display.brightness, display.isBuiltIn)
         } else {
             // Turning ON boost:
-            // 1. Set boosted brightness (1.25 for immediate visible confirmation)
             let targetBrightness = max(1.25, min(1.6, display.brightness))
             display.brightness = targetBrightness
             display.isXDRHeadroomBoosted = true
-            XDRManager.shared.setEDRHeadroom(displayID: display.id, multiplier: targetBrightness)
             onBrightnessChange(targetBrightness, display.isBuiltIn)
         }
     }
