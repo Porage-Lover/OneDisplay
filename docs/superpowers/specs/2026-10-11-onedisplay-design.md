@@ -3,13 +3,13 @@
 **Date:** 2026-10-11  
 **Project:** OneDisplay  
 **Target Platform:** macOS 26.3+ (Xcode 27.2 SDK / Swift 5.9+)  
-**Derived From:** Clean-room reverse-engineered architecture of BetterDisplay v5.1.1  
+**Architecture:** Standalone, privacy-first native macOS display management architecture  
 
 ---
 
 ## 1. Executive Summary & Goals
 
-OneDisplay is a lightweight, high-performance, privacy-first macOS menu bar utility for complete display management. It extracts and reimagines the core display control features uncovered in BetterDisplay v5.1.1, completely eliminating all cloud dependencies, commercial licensing frameworks, and telemetry trackers.
+OneDisplay is a lightweight, high-performance, privacy-first macOS menu bar utility for complete display management. It delivers core display control features while completely eliminating all cloud dependencies, commercial licensing frameworks, and telemetry trackers.
 
 ### Included Features
 - **(A) Display Hardware & DDC/CI Control**: Direct IOKit MCCS communication for hardware backlight, contrast, volume, RGB gain, and input switching.
@@ -152,7 +152,7 @@ OneDisplay/
 
 ## 4. Frontend & User Experience (`OneDisplayApp`)
 
-Reusing the proven, responsive menu bar UI pattern from BetterDisplay while eliminating clutter:
+Providing a clean, responsive native menu bar UI while eliminating clutter:
 
 ### 4.1 Menu Bar Popover (`AppMenuView`)
 - **Compact Status Item**: Sits in macOS menu bar (`NSStatusItem`).

@@ -5,3 +5,5 @@ scripts/*.iconset
 *.dmg
 .DS_Store
 .vscode/
+.superpowers/
+scratch/

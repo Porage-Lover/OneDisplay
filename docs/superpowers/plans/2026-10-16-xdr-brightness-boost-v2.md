@@ -4,7 +4,7 @@
 Fix the critical white screen issue and thread deadlock when enabling XDR boost in OneDisplay:
 1. **Root Cause 1 (White Screen):** The previous implementation rendered a full-screen borderless window with `CAMetalLayer` and `compositingFilter = "multiplyBlendMode"`. macOS WindowServer does not support CoreAnimation multiply blend filters across separate top-level windows; it fell back to source-over opaque blending, drawing a solid full-screen white canvas over the desktop.
 2. **Root Cause 2 (Test Deadlock):** `setEDRHeadroom` acquired `NSLock` and then synchronously called `apply()` on the main thread, which attempted to acquire the same non-recursive `NSLock`, deadlocking the process.
-3. **The Solution:** Adopt the exact, proven architecture reverse-engineered from BetterDisplay v5.1.1 (`ColorController` / `ColorTable` / `edrEnforcerWindow`):
+3. **The Solution:** Adopt the proven architecture using a 1x1 EDR enforcer window and hardware gamma LUT scaling:
    - A tiny **1x1 pixel** transparent borderless `NSWindow` backed by `CAMetalLayer` with `wantsExtendedDynamicRangeContent = true` and `extendedLinearDisplayP3` colorspace. This commands macOS WindowServer and Apple Silicon hardware into EDR mode without covering the desktop.
    - Read the display's base hardware transfer table via `CGGetDisplayTransferByTable(displayID, 256, &red, &green, &blue, &count)`.
    - Scale the transfer table entries by `multiplier` ($1.0 \dots 1.6$) and apply via `CGSetDisplayTransferByTable`.
